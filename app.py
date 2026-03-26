@@ -3,9 +3,6 @@ import pandas as pd
 import joblib
 from pathlib import Path
 
-# =========================================================
-# CONFIG
-# =========================================================
 st.set_page_config(
     page_title="Myopic Regression Predictor",
     page_icon="👁️",
@@ -13,103 +10,70 @@ st.set_page_config(
 )
 
 MODEL_PATH = "myopia_10param_model.pkl"
-THRESHOLD = 0.50
 
-FEATURE_NAMES = [
-    "PRK",
-    "Preop_SE_calc",
-    "Ablation_depth",
-    "AGE",
-    "ACD",
-    "K2_B",
-    "Pachy_Min",
-    "TBI",
-    "A1_Time_ms",
-    "ARTh",
-]
-
-# =========================================================
-# LOAD MODEL (SAFE)
-# =========================================================
 @st.cache_resource
-def load_model():
+def load_bundle():
     model_file = Path(MODEL_PATH)
     if not model_file.exists():
         return None
     return joblib.load(model_file)
 
-model = load_model()
+bundle = load_bundle()
 
-# =========================================================
-# HEADER
-# =========================================================
-st.title("👁️ Myopic Regression Prediction Model")
-
-st.markdown("""
-Predict the probability of **myopic regression** using a 10-parameter model.
-""")
-
-# =========================================================
-# CHECK MODEL
-# =========================================================
-if model is None:
-    st.error("❌ Model file not found. Please upload 'myopia_10param_model.pkl'")
+if bundle is None:
+    st.error(f"Model file not found: {MODEL_PATH}")
     st.stop()
 
-# =========================================================
-# INPUT SECTION
-# =========================================================
+model = bundle["model"]
+imputer = bundle["imputer"]
+features = bundle["features"]
+
+st.title("👁️ Myopic Regression Prediction Model")
+st.write("Predict the probability of myopic regression using the 10-parameter model.")
+
 col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("Clinical Parameters")
-
-    PRK = st.selectbox("PRK (0=No, 1=Yes)", [0, 1])
-    Preop_SE_calc = st.number_input("Preop SE (calc)", value=-4.50)
-    Ablation_depth = st.number_input("Ablation depth", value=80.0)
-    AGE = st.number_input("Age", value=25.0)
+    PRK = st.selectbox("PRK (0 = No, 1 = Yes)", [0, 1])
+    Preop_SE_calc = st.number_input("Preop_SE_calc", value=-4.50, format="%.2f")
+    Ablation_depth = st.number_input("Ablation_depth", value=80.0, format="%.2f")
+    AGE = st.number_input("AGE", value=25.0, format="%.1f")
 
 with col2:
     st.subheader("Corneal Parameters")
+    ACD = st.number_input("ACD", value=3.20, format="%.2f")
+    K2_B = st.number_input("K2_B", value=6.50, format="%.2f")
+    Pachy_Min = st.number_input("Pachy_Min", value=520.0, format="%.1f")
+    TBI = st.number_input("TBI", value=0.30, format="%.2f")
+    A1_Time_ms = st.number_input("A1_Time_ms", value=7.20, format="%.2f")
+    ARTh = st.number_input("ARTh", value=400.0, format="%.1f")
 
-    ACD = st.number_input("ACD", value=3.2)
-    K2_B = st.number_input("K2 Back", value=6.5)
-    Pachy_Min = st.number_input("Pachy Min", value=520.0)
-    TBI = st.number_input("TBI", value=0.3)
-    A1_Time_ms = st.number_input("A1 Time (ms)", value=7.2)
-    ARTh = st.number_input("ARTh", value=400.0)
-
-# =========================================================
-# PREDICTION BUTTON
-# =========================================================
-if st.button("🔍 Predict"):
-
-    # Create dataframe
-    input_df = pd.DataFrame([[
-        PRK,
-        Preop_SE_calc,
-        Ablation_depth,
-        AGE,
-        ACD,
-        K2_B,
-        Pachy_Min,
-        TBI,
-        A1_Time_ms,
-        ARTh
-    ]], columns=FEATURE_NAMES)
+if st.button("🔍 Predict Probability", use_container_width=True):
+    input_df = pd.DataFrame([{
+        "PRK": PRK,
+        "Preop_SE_calc": Preop_SE_calc,
+        "Ablation_depth": Ablation_depth,
+        "ACD": ACD,
+        "K2_B": K2_B,
+        "Pachy_Min": Pachy_Min,
+        "TBI": TBI,
+        "A1_Time_ms": A1_Time_ms,
+        "ARTh": ARTh,
+        "AGE": AGE
+    }])
 
     try:
-        # Predict probability
-        if hasattr(model, "predict_proba"):
-            prob = model.predict_proba(input_df)[0][1]
-        else:
-            prob = float(model.predict(input_df)[0])
+        input_df = input_df[features]
 
-        # =================================================
-        # OUTPUT
-        # =================================================
+        input_imp = pd.DataFrame(
+            imputer.transform(input_df),
+            columns=features
+        )
+
+        prob = float(model.predict_proba(input_imp)[0, 1])
+
         st.markdown("## 🎯 Predicted Probability")
-
         st.markdown(
             f"""
             <div style="
@@ -127,7 +91,8 @@ if st.button("🔍 Predict"):
             unsafe_allow_html=True
         )
 
-        # Risk label
+        st.write(f"**Exact probability = {prob:.4f}**")
+
         if prob >= 0.7:
             st.error("🔴 High Risk")
         elif prob >= 0.5:
@@ -137,12 +102,8 @@ if st.button("🔍 Predict"):
         else:
             st.success("🟢 Low Risk")
 
-        # Exact probability (important)
-        st.write(f"**Exact probability = {prob:.4f}**")
-
-        # Show inputs
         st.subheader("Input Data")
-        st.dataframe(input_df)
+        st.dataframe(input_df, use_container_width=True)
 
     except Exception as e:
         st.error("Prediction failed")
