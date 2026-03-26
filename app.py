@@ -4,9 +4,6 @@ import joblib
 from pathlib import Path
 import plotly.graph_objects as go
 
-# =========================================================
-# PAGE CONFIG
-# =========================================================
 st.set_page_config(
     page_title="CMU Myopic Regression Prediction Model",
     page_icon="🟣",
@@ -15,9 +12,6 @@ st.set_page_config(
 
 MODEL_PATH = "myopia_10param_model.pkl"
 
-# =========================================================
-# CUSTOM CSS
-# =========================================================
 st.markdown("""
 <style>
 .block-container {
@@ -133,9 +127,6 @@ div[data-testid="stButton"] button:hover {
 </style>
 """, unsafe_allow_html=True)
 
-# =========================================================
-# LOAD MODEL BUNDLE
-# =========================================================
 @st.cache_resource
 def load_bundle():
     model_file = Path(MODEL_PATH)
@@ -144,12 +135,6 @@ def load_bundle():
     return joblib.load(model_file)
 
 def unpack_bundle(bundle):
-    """
-    Supports:
-    1) dict: {"model":..., "imputer":..., "features":...}
-    2) tuple/list: (model, imputer, features)
-    3) plain sklearn model/pipeline
-    """
     model = None
     imputer = None
     features = None
@@ -158,7 +143,6 @@ def unpack_bundle(bundle):
         model = bundle.get("model", bundle.get("clf", bundle.get("pipeline", None)))
         imputer = bundle.get("imputer", None)
         features = bundle.get("features", bundle.get("feature_names", None))
-
     elif isinstance(bundle, (list, tuple)):
         if len(bundle) >= 1:
             model = bundle[0]
@@ -166,7 +150,6 @@ def unpack_bundle(bundle):
             imputer = bundle[1]
         if len(bundle) >= 3:
             features = bundle[2]
-
     else:
         model = bundle
 
@@ -182,19 +165,17 @@ model, imputer, features = unpack_bundle(bundle)
 
 if model is None:
     st.error("Could not read model from the PKL file.")
-    st.write("Loaded object type:", type(bundle))
     st.stop()
 
-# fallback feature list if not stored in pkl
 DEFAULT_FEATURES = [
     "PRK",
-    "Preop_SE_calc",
+    "Preop_SE__calc__",
     "Ablation_depth",
     "ACD",
     "K2_B",
     "Pachy_Min",
     "CBI",
-    "A1_Time_ms",
+    "A1_Time__ms_",
     "ARTh",
     "AGE"
 ]
@@ -202,9 +183,6 @@ DEFAULT_FEATURES = [
 if features is None:
     features = DEFAULT_FEATURES
 
-# =========================================================
-# HELPERS
-# =========================================================
 def make_gauge(prob):
     fig = go.Figure(go.Indicator(
         mode="gauge+number",
@@ -248,19 +226,19 @@ def get_risk_style(prob):
     else:
         return "🟢 Low Risk", "tag-low"
 
-def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy_Min, CBI, A1_Time_ms, ARTh):
+def simple_explanation(PRK, Preop_SE, Ablation_depth, AGE, ACD, K2_B, Pachy_Min, CBI, A1_Time, ARTh):
     reasons = []
     if CBI > 0.50:
         reasons.append("High CBI")
     if Ablation_depth > 100:
         reasons.append("Deep ablation depth")
-    if Preop_SE_calc < -6.00:
+    if Preop_SE < -6.00:
         reasons.append("High pre-operative myopia")
     if ARTh < 300:
         reasons.append("Low ARTh suggesting weaker corneal biomechanical profile")
     if Pachy_Min < 500:
         reasons.append("Thin thinnest pachymetry")
-    if A1_Time_ms < 7.00:
+    if A1_Time < 7.00:
         reasons.append("Short A1 time")
     if PRK == 1:
         reasons.append("PRK treatment profile")
@@ -278,19 +256,8 @@ def predict_probability(model, input_df, imputer=None):
     if imputer is not None:
         X = pd.DataFrame(imputer.transform(X), columns=X.columns)
 
-    if hasattr(model, "predict_proba"):
-        return float(model.predict_proba(X)[0, 1])
+    return float(model.predict_proba(X)[0, 1])
 
-    if hasattr(model, "decision_function"):
-        score = float(model.decision_function(X)[0])
-        return 1 / (1 + (2.718281828 ** (-score)))
-
-    pred = float(model.predict(X)[0])
-    return pred
-
-# =========================================================
-# HEADER
-# =========================================================
 st.markdown("""
 <div class="banner">
     <div class="banner-title">🟣👁️ CMU Myopic Regression Prediction Model</div>
@@ -298,9 +265,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# =========================================================
-# MAIN LAYOUT
-# =========================================================
 left_col, right_col = st.columns([1.05, 1], gap="large")
 
 with left_col:
@@ -308,7 +272,7 @@ with left_col:
     st.subheader("🩺 Clinical Parameters")
     PRK_label = st.selectbox("PRK", ["No", "Yes"])
     PRK = 1 if PRK_label == "Yes" else 0
-    Preop_SE_calc = st.number_input("Pre-op SE", value=-4.50, format="%.2f")
+    Preop_SE_input = st.number_input("Pre-op SE", value=-4.50, format="%.2f")
     Ablation_depth = st.number_input("Ablation depth", value=80.0, format="%.2f")
     AGE = st.number_input("Age", value=25.0, format="%.1f")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -323,7 +287,7 @@ with left_col:
     st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("⚙️ Corneal Biomechanics")
     CBI = st.number_input("CBI", value=0.30, format="%.2f")
-    A1_Time_ms = st.number_input("A1 time", value=7.20, format="%.2f")
+    A1_Time_input = st.number_input("A1 time", value=7.20, format="%.2f")
     ARTh = st.number_input("ARTh", value=400.0, format="%.1f")
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -335,19 +299,16 @@ with right_col:
     st.markdown('<p class="small-note">Fill in the parameters, then click predict to estimate the risk of myopic regression.</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-# =========================================================
-# PREDICTION
-# =========================================================
 if predict_button:
     raw_input_df = pd.DataFrame([{
         "PRK": PRK,
-        "Preop_SE_calc": Preop_SE_calc,
+        "Preop_SE__calc__": Preop_SE_input,
         "Ablation_depth": Ablation_depth,
         "ACD": ACD,
         "K2_B": K2_B,
         "Pachy_Min": Pachy_Min,
         "CBI": CBI,
-        "A1_Time_ms": A1_Time_ms,
+        "A1_Time__ms_": A1_Time_input,
         "ARTh": ARTh,
         "AGE": AGE
     }])
@@ -363,8 +324,8 @@ if predict_button:
 
         risk_text, risk_class = get_risk_style(prob)
         reasons = simple_explanation(
-            PRK, Preop_SE_calc, Ablation_depth, AGE,
-            ACD, K2_B, Pachy_Min, CBI, A1_Time_ms, ARTh
+            PRK, Preop_SE_input, Ablation_depth, AGE,
+            ACD, K2_B, Pachy_Min, CBI, A1_Time_input, ARTh
         )
 
         with right_col:
@@ -394,14 +355,14 @@ if predict_button:
             st.subheader("📋 Input Summary")
             display_df = pd.DataFrame([{
                 "PRK": PRK_label,
-                "Pre-op SE": Preop_SE_calc,
+                "Pre-op SE": Preop_SE_input,
                 "Ablation depth": Ablation_depth,
                 "Age": AGE,
                 "ACD": ACD,
                 "K2 (back)": K2_B,
                 "Thinnest Pachy.": Pachy_Min,
                 "CBI": CBI,
-                "A1 time": A1_Time_ms,
+                "A1 time": A1_Time_input,
                 "ARTh": ARTh
             }])
             st.dataframe(display_df, use_container_width=True, hide_index=True)
@@ -409,7 +370,6 @@ if predict_button:
 
     except Exception as e:
         st.error("Prediction failed")
-        st.write("Loaded bundle type:", type(bundle))
-        st.write("Loaded model type:", type(model))
-        st.write("Features:", features)
+        st.write("Expected features:", features)
+        st.write("Input columns:", list(raw_input_df.columns))
         st.exception(e)
