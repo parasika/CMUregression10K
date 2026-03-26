@@ -25,7 +25,6 @@ st.markdown("""
     padding-bottom: 2rem;
     max-width: 1180px;
 }
-
 .banner {
     background: linear-gradient(135deg, #e9d5ff 0%, #c084fc 35%, #a855f7 70%, #7e22ce 100%);
     padding: 30px 34px;
@@ -34,21 +33,18 @@ st.markdown("""
     box-shadow: 0 14px 32px rgba(126, 34, 206, 0.22);
     margin-bottom: 24px;
 }
-
 .banner-title {
     margin: 0;
     font-size: 2.15rem;
     font-weight: 800;
     line-height: 1.2;
 }
-
 .banner-subtitle {
     margin-top: 8px;
     margin-bottom: 0;
     font-size: 1.02rem;
     opacity: 0.97;
 }
-
 .card {
     background: #ffffff;
     border: 1px solid #eadcff;
@@ -57,7 +53,6 @@ st.markdown("""
     margin-bottom: 16px;
     box-shadow: 0 8px 18px rgba(168, 85, 247, 0.08);
 }
-
 .soft-card {
     background: #fcfaff;
     border: 1px solid #eadcff;
@@ -66,7 +61,6 @@ st.markdown("""
     margin-bottom: 16px;
     box-shadow: 0 8px 18px rgba(168, 85, 247, 0.07);
 }
-
 .prob-box {
     background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 45%, #9333ea 100%);
     color: white;
@@ -79,7 +73,6 @@ st.markdown("""
     margin-bottom: 14px;
     box-shadow: 0 10px 22px rgba(109, 40, 217, 0.22);
 }
-
 .tag-high {
     background: #fee2e2;
     color: #991b1b;
@@ -88,7 +81,6 @@ st.markdown("""
     font-weight: 700;
     display: inline-block;
 }
-
 .tag-mod {
     background: #ffedd5;
     color: #9a3412;
@@ -97,7 +89,6 @@ st.markdown("""
     font-weight: 700;
     display: inline-block;
 }
-
 .tag-mid {
     background: #fef9c3;
     color: #854d0e;
@@ -106,7 +97,6 @@ st.markdown("""
     font-weight: 700;
     display: inline-block;
 }
-
 .tag-low {
     background: #dcfce7;
     color: #166534;
@@ -115,7 +105,6 @@ st.markdown("""
     font-weight: 700;
     display: inline-block;
 }
-
 .explain-item {
     background: #f8f4ff;
     border-left: 5px solid #9333ea;
@@ -125,12 +114,10 @@ st.markdown("""
     color: #3b0764;
     font-weight: 500;
 }
-
 .small-note {
     color: #6b7280;
     font-size: 0.92rem;
 }
-
 div[data-testid="stButton"] button {
     background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
     color: white;
@@ -140,7 +127,6 @@ div[data-testid="stButton"] button {
     padding: 0.75rem 1rem;
     box-shadow: 0 8px 18px rgba(147, 51, 234, 0.22);
 }
-
 div[data-testid="stButton"] button:hover {
     filter: brightness(1.03);
 }
@@ -157,15 +143,64 @@ def load_bundle():
         return None
     return joblib.load(model_file)
 
+def unpack_bundle(bundle):
+    """
+    Supports:
+    1) dict: {"model":..., "imputer":..., "features":...}
+    2) tuple/list: (model, imputer, features)
+    3) plain sklearn model/pipeline
+    """
+    model = None
+    imputer = None
+    features = None
+
+    if isinstance(bundle, dict):
+        model = bundle.get("model", bundle.get("clf", bundle.get("pipeline", None)))
+        imputer = bundle.get("imputer", None)
+        features = bundle.get("features", bundle.get("feature_names", None))
+
+    elif isinstance(bundle, (list, tuple)):
+        if len(bundle) >= 1:
+            model = bundle[0]
+        if len(bundle) >= 2:
+            imputer = bundle[1]
+        if len(bundle) >= 3:
+            features = bundle[2]
+
+    else:
+        model = bundle
+
+    return model, imputer, features
+
 bundle = load_bundle()
 
 if bundle is None:
     st.error(f"Model file not found: {MODEL_PATH}")
     st.stop()
 
-model = bundle["model"]
-imputer = bundle["imputer"]
-features = bundle["features"]
+model, imputer, features = unpack_bundle(bundle)
+
+if model is None:
+    st.error("Could not read model from the PKL file.")
+    st.write("Loaded object type:", type(bundle))
+    st.stop()
+
+# fallback feature list if not stored in pkl
+DEFAULT_FEATURES = [
+    "PRK",
+    "Preop_SE_calc",
+    "Ablation_depth",
+    "ACD",
+    "K2_B",
+    "Pachy_Min",
+    "CBI",
+    "A1_Time_ms",
+    "ARTh",
+    "AGE"
+]
+
+if features is None:
+    features = DEFAULT_FEATURES
 
 # =========================================================
 # HELPERS
@@ -237,6 +272,22 @@ def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy
         reasons.append("Steeper posterior corneal curvature")
     return reasons[:5]
 
+def predict_probability(model, input_df, imputer=None):
+    X = input_df.copy()
+
+    if imputer is not None:
+        X = pd.DataFrame(imputer.transform(X), columns=X.columns)
+
+    if hasattr(model, "predict_proba"):
+        return float(model.predict_proba(X)[0, 1])
+
+    if hasattr(model, "decision_function"):
+        score = float(model.decision_function(X)[0])
+        return 1 / (1 + (2.718281828 ** (-score)))
+
+    pred = float(model.predict(X)[0])
+    return pred
+
 # =========================================================
 # HEADER
 # =========================================================
@@ -288,7 +339,7 @@ with right_col:
 # PREDICTION
 # =========================================================
 if predict_button:
-    input_df = pd.DataFrame([{
+    raw_input_df = pd.DataFrame([{
         "PRK": PRK,
         "Preop_SE_calc": Preop_SE_calc,
         "Ablation_depth": Ablation_depth,
@@ -302,9 +353,13 @@ if predict_button:
     }])
 
     try:
-        input_df = input_df[features]
-        input_imp = pd.DataFrame(imputer.transform(input_df), columns=features)
-        prob = float(model.predict_proba(input_imp)[0, 1])
+        missing_cols = [col for col in features if col not in raw_input_df.columns]
+        if missing_cols:
+            st.error(f"These model features are missing from the app input: {missing_cols}")
+            st.stop()
+
+        input_df = raw_input_df[features]
+        prob = predict_probability(model, input_df, imputer)
 
         risk_text, risk_class = get_risk_style(prob)
         reasons = simple_explanation(
@@ -354,4 +409,7 @@ if predict_button:
 
     except Exception as e:
         st.error("Prediction failed")
+        st.write("Loaded bundle type:", type(bundle))
+        st.write("Loaded model type:", type(model))
+        st.write("Features:", features)
         st.exception(e)
