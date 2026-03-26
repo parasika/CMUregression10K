@@ -23,64 +23,126 @@ st.markdown("""
 .block-container {
     padding-top: 1.2rem;
     padding-bottom: 2rem;
-    max-width: 1200px;
+    max-width: 1180px;
 }
 
 .banner {
-    background: linear-gradient(135deg, #c084fc 0%, #a855f7 40%, #7c3aed 100%);
-    padding: 28px 32px;
-    border-radius: 22px;
+    background: linear-gradient(135deg, #e9d5ff 0%, #c084fc 35%, #a855f7 70%, #7e22ce 100%);
+    padding: 30px 34px;
+    border-radius: 24px;
     color: white;
-    box-shadow: 0 10px 30px rgba(124, 58, 237, 0.25);
-    margin-bottom: 22px;
+    box-shadow: 0 14px 32px rgba(126, 34, 206, 0.22);
+    margin-bottom: 24px;
 }
 
-.banner h1 {
+.banner-title {
     margin: 0;
-    font-size: 2.1rem;
+    font-size: 2.15rem;
     font-weight: 800;
+    line-height: 1.2;
 }
 
-.banner p {
+.banner-subtitle {
     margin-top: 8px;
     margin-bottom: 0;
-    font-size: 1.0rem;
-    opacity: 0.96;
+    font-size: 1.02rem;
+    opacity: 0.97;
 }
 
-.section-card {
-    background: #faf7ff;
-    border: 1px solid #eadcff;
-    border-radius: 18px;
-    padding: 18px 18px 10px 18px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.08);
-}
-
-.result-card {
+.card {
     background: #ffffff;
     border: 1px solid #eadcff;
-    border-radius: 18px;
-    padding: 18px;
-    box-shadow: 0 4px 14px rgba(168, 85, 247, 0.08);
-    margin-bottom: 14px;
+    border-radius: 20px;
+    padding: 18px 18px 14px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 18px rgba(168, 85, 247, 0.08);
+}
+
+.soft-card {
+    background: #fcfaff;
+    border: 1px solid #eadcff;
+    border-radius: 20px;
+    padding: 18px 18px 14px 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 18px rgba(168, 85, 247, 0.07);
 }
 
 .prob-box {
-    background: linear-gradient(135deg, #581c87 0%, #7c3aed 50%, #a855f7 100%);
+    background: linear-gradient(135deg, #4c1d95 0%, #6d28d9 45%, #9333ea 100%);
     color: white;
-    padding: 24px;
-    border-radius: 18px;
+    padding: 22px;
+    border-radius: 20px;
     text-align: center;
-    font-size: 2.3rem;
+    font-size: 2.35rem;
     font-weight: 800;
+    margin-top: 4px;
     margin-bottom: 14px;
-    box-shadow: 0 8px 20px rgba(124, 58, 237, 0.22);
+    box-shadow: 0 10px 22px rgba(109, 40, 217, 0.22);
+}
+
+.tag-high {
+    background: #fee2e2;
+    color: #991b1b;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.tag-mod {
+    background: #ffedd5;
+    color: #9a3412;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.tag-mid {
+    background: #fef9c3;
+    color: #854d0e;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.tag-low {
+    background: #dcfce7;
+    color: #166534;
+    padding: 10px 14px;
+    border-radius: 12px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+.explain-item {
+    background: #f8f4ff;
+    border-left: 5px solid #9333ea;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    color: #3b0764;
+    font-weight: 500;
 }
 
 .small-note {
     color: #6b7280;
     font-size: 0.92rem;
+}
+
+div[data-testid="stButton"] button {
+    background: linear-gradient(135deg, #7c3aed 0%, #9333ea 100%);
+    color: white;
+    font-weight: 700;
+    border: none;
+    border-radius: 14px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 8px 18px rgba(147, 51, 234, 0.22);
+}
+
+div[data-testid="stButton"] button:hover {
+    filter: brightness(1.03);
 }
 </style>
 """, unsafe_allow_html=True)
@@ -116,15 +178,15 @@ def make_gauge(prob):
         title={"text": "Predicted Probability", "font": {"size": 22}},
         gauge={
             "axis": {"range": [0, 100], "tickwidth": 1},
-            "bar": {"color": "#4c1d95", "thickness": 0.34},
+            "bar": {"color": "#3b0764", "thickness": 0.34},
             "bgcolor": "white",
             "borderwidth": 1,
             "bordercolor": "#ddd6fe",
             "steps": [
-                {"range": [0, 30], "color": "#22c55e"},   # strong green
-                {"range": [30, 50], "color": "#eab308"},  # strong yellow
-                {"range": [50, 70], "color": "#f97316"},  # strong orange
-                {"range": [70, 100], "color": "#ef4444"}, # strong red
+                {"range": [0, 30], "color": "#16a34a"},
+                {"range": [30, 50], "color": "#eab308"},
+                {"range": [50, 70], "color": "#f97316"},
+                {"range": [70, 100], "color": "#dc2626"},
             ],
             "threshold": {
                 "line": {"color": "#111827", "width": 5},
@@ -134,28 +196,25 @@ def make_gauge(prob):
         }
     ))
     fig.update_layout(
-        height=330,
-        margin=dict(l=20, r=20, t=70, b=20),
+        height=320,
+        margin=dict(l=18, r=18, t=65, b=18),
         paper_bgcolor="white",
         font={"color": "#111827"}
     )
     return fig
 
-
-def get_risk_label(prob):
+def get_risk_style(prob):
     if prob >= 0.7:
-        return "🔴 High Risk"
+        return "🔴 High Risk", "tag-high"
     elif prob >= 0.5:
-        return "🟠 Moderate Risk"
+        return "🟠 Moderate Risk", "tag-mod"
     elif prob >= 0.3:
-        return "🟡 Intermediate Risk"
+        return "🟡 Intermediate Risk", "tag-mid"
     else:
-        return "🟢 Low Risk"
-
+        return "🟢 Low Risk", "tag-low"
 
 def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy_Min, TBI, A1_Time_ms, ARTh):
     reasons = []
-
     if TBI > 0.50:
         reasons.append("High TBI")
     if Ablation_depth > 100:
@@ -163,7 +222,7 @@ def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy
     if Preop_SE_calc < -6.00:
         reasons.append("High pre-operative myopia")
     if ARTh < 300:
-        reasons.append("Low ARTh suggesting weaker corneal structural profile")
+        reasons.append("Low ARTh suggesting weaker corneal biomechanical profile")
     if Pachy_Min < 500:
         reasons.append("Thin thinnest pachymetry")
     if A1_Time_ms < 7.00:
@@ -176,42 +235,41 @@ def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy
         reasons.append("Lower ACD")
     if K2_B > 6.8:
         reasons.append("Steeper posterior corneal curvature")
-
     return reasons[:5]
-
 
 # =========================================================
 # HEADER
 # =========================================================
 st.markdown("""
 <div class="banner">
-    <h1>🟣👁️ CMU Myopic Regression Prediction Model</h1>
-    <p>Estimate the probability of myopic regression using clinical, tomographic, and biomechanical parameters.</p>
+    <div class="banner-title">🟣👁️ CMU Myopic Regression Prediction Model</div>
+    <div class="banner-subtitle">Estimate the probability of myopic regression using clinical, corneal tomography, and corneal biomechanics parameters.</div>
 </div>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# LAYOUT
+# MAIN LAYOUT
 # =========================================================
-left_col, right_col = st.columns([1.1, 1])
+left_col, right_col = st.columns([1.05, 1], gap="large")
 
 with left_col:
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("🩺 Clinical Parameters")
-    PRK = st.selectbox("PRK", [0, 1], help="0 = No, 1 = Yes")
+    PRK_label = st.selectbox("PRK", ["No", "Yes"])
+    PRK = 1 if PRK_label == "Yes" else 0
     Preop_SE_calc = st.number_input("Pre-op SE", value=-4.50, format="%.2f")
     Ablation_depth = st.number_input("Ablation depth", value=80.0, format="%.2f")
     AGE = st.number_input("Age", value=25.0, format="%.1f")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("📷 Corneal Tomography")
     ACD = st.number_input("ACD", value=3.20, format="%.2f")
     K2_B = st.number_input("K2 (back)", value=6.50, format="%.2f")
     Pachy_Min = st.number_input("Thinnest Pachy.", value=520.0, format="%.1f")
     st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown('<div class="section-card">', unsafe_allow_html=True)
+    st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("⚙️ Corneal Biomechanics")
     TBI = st.number_input("TBI", value=0.30, format="%.2f")
     A1_Time_ms = st.number_input("A1 time", value=7.20, format="%.2f")
@@ -221,9 +279,9 @@ with left_col:
     predict_button = st.button("🔮 Predict Probability", use_container_width=True)
 
 with right_col:
-    st.markdown('<div class="result-card">', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
     st.subheader("📊 Prediction Result")
-    st.markdown('<p class="small-note">Enter the values on the left, then click predict.</p>', unsafe_allow_html=True)
+    st.markdown('<p class="small-note">Fill in the parameters, then click predict to estimate the risk of myopic regression.</p>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
 # =========================================================
@@ -245,50 +303,42 @@ if predict_button:
 
     try:
         input_df = input_df[features]
-
-        input_imp = pd.DataFrame(
-            imputer.transform(input_df),
-            columns=features
-        )
-
+        input_imp = pd.DataFrame(imputer.transform(input_df), columns=features)
         prob = float(model.predict_proba(input_imp)[0, 1])
-        risk_label = get_risk_label(prob)
+
+        risk_text, risk_class = get_risk_style(prob)
         reasons = simple_explanation(
             PRK, Preop_SE_calc, Ablation_depth, AGE,
             ACD, K2_B, Pachy_Min, TBI, A1_Time_ms, ARTh
         )
 
         with right_col:
-            st.markdown('<div class="result-card">', unsafe_allow_html=True)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("📊 Prediction Result")
             st.plotly_chart(make_gauge(prob), use_container_width=True)
 
-            st.markdown(
-                f'<div class="prob-box">{prob*100:.1f}%</div>',
-                unsafe_allow_html=True
-            )
-
+            st.markdown(f'<div class="prob-box">{prob*100:.1f}%</div>', unsafe_allow_html=True)
             st.write(f"**Exact probability = {prob:.4f}**")
-            st.write(f"**Risk category: {risk_label}**")
+            st.markdown(f'<div class="{risk_class}">{risk_text}</div>', unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown('<div class="result-card">', unsafe_allow_html=True)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("🧠 Simple Risk Explanation")
             if reasons:
-                for r in reasons:
-                    st.write(f"- {r}")
+                for reason in reasons:
+                    st.markdown(f'<div class="explain-item">• {reason}</div>', unsafe_allow_html=True)
             else:
-                st.write("- No obvious high-risk pattern detected from the simple rule-based explanation.")
+                st.markdown('<div class="explain-item">• No obvious high-risk pattern detected from the simple rule-based explanation.</div>', unsafe_allow_html=True)
             st.markdown(
-                '<p class="small-note">This explanation is a simple supportive summary, not a SHAP-based causal interpretation.</p>',
+                '<p class="small-note">This explanation is a simple supportive summary and not a SHAP-based individual feature attribution.</p>',
                 unsafe_allow_html=True
             )
             st.markdown('</div>', unsafe_allow_html=True)
 
-            st.markdown('<div class="result-card">', unsafe_allow_html=True)
+            st.markdown('<div class="card">', unsafe_allow_html=True)
             st.subheader("📋 Input Summary")
             display_df = pd.DataFrame([{
-                "PRK": PRK,
+                "PRK": PRK_label,
                 "Pre-op SE": Preop_SE_calc,
                 "Ablation depth": Ablation_depth,
                 "Age": AGE,
