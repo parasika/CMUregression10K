@@ -1,92 +1,149 @@
-# =========================================================
-# PREDICTION
-# =========================================================
-if predict_button:
-    input_dict = {
-        "PRK": PRK,
-        "Preop_SE_calc": Preop_SE_calc,
-        "Ablation_depth": Ablation_depth,
-        "AGE": AGE,
-        "ACD": ACD,
-        "K2_B": K2_B,
-        "Pachy_Min": Pachy_Min,
-        "TBI": TBI,
-        "A1_Time_ms": A1_Time_ms,
-        "ARTh": ARTh,
-    }
+import streamlit as st
+import pandas as pd
+import joblib
+from pathlib import Path
 
-    input_df = build_input_dataframe(input_dict)
+# =========================================================
+# CONFIG
+# =========================================================
+st.set_page_config(
+    page_title="Myopic Regression Predictor",
+    page_icon="👁️",
+    layout="wide"
+)
+
+MODEL_PATH = "myopia_10param_model.pkl"
+THRESHOLD = 0.50
+
+FEATURE_NAMES = [
+    "PRK",
+    "Preop_SE_calc",
+    "Ablation_depth",
+    "AGE",
+    "ACD",
+    "K2_B",
+    "Pachy_Min",
+    "TBI",
+    "A1_Time_ms",
+    "ARTh",
+]
+
+# =========================================================
+# LOAD MODEL (SAFE)
+# =========================================================
+@st.cache_resource
+def load_model():
+    model_file = Path(MODEL_PATH)
+    if not model_file.exists():
+        return None
+    return joblib.load(model_file)
+
+model = load_model()
+
+# =========================================================
+# HEADER
+# =========================================================
+st.title("👁️ Myopic Regression Prediction Model")
+
+st.markdown("""
+Predict the probability of **myopic regression** using a 10-parameter model.
+""")
+
+# =========================================================
+# CHECK MODEL
+# =========================================================
+if model is None:
+    st.error("❌ Model file not found. Please upload 'myopia_10param_model.pkl'")
+    st.stop()
+
+# =========================================================
+# INPUT SECTION
+# =========================================================
+col1, col2 = st.columns(2)
+
+with col1:
+    st.subheader("Clinical Parameters")
+
+    PRK = st.selectbox("PRK (0=No, 1=Yes)", [0, 1])
+    Preop_SE_calc = st.number_input("Preop SE (calc)", value=-4.50)
+    Ablation_depth = st.number_input("Ablation depth", value=80.0)
+    AGE = st.number_input("Age", value=25.0)
+
+with col2:
+    st.subheader("Corneal Parameters")
+
+    ACD = st.number_input("ACD", value=3.2)
+    K2_B = st.number_input("K2 Back", value=6.5)
+    Pachy_Min = st.number_input("Pachy Min", value=520.0)
+    TBI = st.number_input("TBI", value=0.3)
+    A1_Time_ms = st.number_input("A1 Time (ms)", value=7.2)
+    ARTh = st.number_input("ARTh", value=400.0)
+
+# =========================================================
+# PREDICTION BUTTON
+# =========================================================
+if st.button("🔍 Predict"):
+
+    # Create dataframe
+    input_df = pd.DataFrame([[
+        PRK,
+        Preop_SE_calc,
+        Ablation_depth,
+        AGE,
+        ACD,
+        K2_B,
+        Pachy_Min,
+        TBI,
+        A1_Time_ms,
+        ARTh
+    ]], columns=FEATURE_NAMES)
 
     try:
-        probability = predict_risk(model, input_df)
-        prediction = int(probability >= THRESHOLD)
+        # Predict probability
+        if hasattr(model, "predict_proba"):
+            prob = model.predict_proba(input_df)[0][1]
+        else:
+            prob = float(model.predict(input_df)[0])
 
-        label, bg_color, text_color = risk_label(probability, THRESHOLD)
+        # =================================================
+        # OUTPUT
+        # =================================================
+        st.markdown("## 🎯 Predicted Probability")
 
-        with right_col:
+        st.markdown(
+            f"""
+            <div style="
+                background-color:#111827;
+                color:white;
+                padding:30px;
+                border-radius:20px;
+                text-align:center;
+                font-size:2.5rem;
+                font-weight:700;
+            ">
+                {prob*100:.1f}%
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-            # 🎯 MAIN PROBABILITY DISPLAY
-            st.markdown("## 🎯 Predicted Probability")
+        # Risk label
+        if prob >= 0.7:
+            st.error("🔴 High Risk")
+        elif prob >= 0.5:
+            st.warning("🟠 Moderate Risk")
+        elif prob >= 0.3:
+            st.info("🟡 Intermediate Risk")
+        else:
+            st.success("🟢 Low Risk")
 
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:#111827;
-                    color:white;
-                    padding:25px;
-                    border-radius:20px;
-                    text-align:center;
-                    font-size:2.2rem;
-                    font-weight:700;
-                ">
-                    {probability*100:.1f}%
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+        # Exact probability (important)
+        st.write(f"**Exact probability = {prob:.4f}**")
 
-            # 🔎 Interpretation
-            st.markdown(
-                f"""
-                <div style="
-                    background-color:{bg_color};
-                    color:{text_color};
-                    padding:15px;
-                    border-radius:15px;
-                    text-align:center;
-                    font-size:1.2rem;
-                    font-weight:600;
-                    margin-top:10px;
-                ">
-                    {label}
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            # 📊 Gauge (optional but nice)
-            st.plotly_chart(make_gauge(probability), use_container_width=True)
-
-            # 🧠 Clinical interpretation
-            st.markdown("### 🧠 Clinical Interpretation")
-
-            if probability >= 0.7:
-                st.error("Very high risk → consider closer follow-up or undercorrection strategy")
-            elif probability >= 0.5:
-                st.warning("Moderate–high risk → monitor carefully")
-            elif probability >= 0.3:
-                st.info("Intermediate risk")
-            else:
-                st.success("Low risk")
-
-            # 📄 Raw probability (important for papers)
-            st.markdown("### 📄 Model Output")
-            st.write(f"**Predicted probability of myopic regression = {probability:.4f}**")
-
-            # 📋 Input table
-            st.markdown("### 📋 Input Summary")
-            st.dataframe(input_df, use_container_width=True)
+        # Show inputs
+        st.subheader("Input Data")
+        st.dataframe(input_df)
 
     except Exception as e:
-        st.error("Prediction failed.")
+        st.error("Prediction failed")
         st.exception(e)
