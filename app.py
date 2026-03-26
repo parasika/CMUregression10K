@@ -213,10 +213,10 @@ def get_risk_style(prob):
     else:
         return "🟢 Low Risk", "tag-low"
 
-def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy_Min, TBI, A1_Time_ms, ARTh):
+def simple_explanation(PRK, Preop_SE_calc, Ablation_depth, AGE, ACD, K2_B, Pachy_Min, CBI, A1_Time_ms, ARTh):
     reasons = []
-    if TBI > 0.50:
-        reasons.append("High TBI")
+    if CBI > 0.50:
+        reasons.append("High CBI")
     if Ablation_depth > 100:
         reasons.append("Deep ablation depth")
     if Preop_SE_calc < -6.00:
@@ -271,7 +271,7 @@ with left_col:
 
     st.markdown('<div class="soft-card">', unsafe_allow_html=True)
     st.subheader("⚙️ Corneal Biomechanics")
-    TBI = st.number_input("TBI", value=0.30, format="%.2f")
+    CBI = st.number_input("CBI", value=0.30, format="%.2f")
     A1_Time_ms = st.number_input("A1 time", value=7.20, format="%.2f")
     ARTh = st.number_input("ARTh", value=400.0, format="%.1f")
     st.markdown('</div>', unsafe_allow_html=True)
@@ -295,7 +295,7 @@ if predict_button:
         "ACD": ACD,
         "K2_B": K2_B,
         "Pachy_Min": Pachy_Min,
-        "TBI": TBI,
+        "CBI": CBI,
         "A1_Time_ms": A1_Time_ms,
         "ARTh": ARTh,
         "AGE": AGE
@@ -309,7 +309,7 @@ if predict_button:
         risk_text, risk_class = get_risk_style(prob)
         reasons = simple_explanation(
             PRK, Preop_SE_calc, Ablation_depth, AGE,
-            ACD, K2_B, Pachy_Min, TBI, A1_Time_ms, ARTh
+            ACD, K2_B, Pachy_Min, CBI, A1_Time_ms, ARTh
         )
 
         with right_col:
@@ -345,7 +345,7 @@ if predict_button:
                 "ACD": ACD,
                 "K2 (back)": K2_B,
                 "Thinnest Pachy.": Pachy_Min,
-                "TBI": TBI,
+                "CBI": CBI,
                 "A1 time": A1_Time_ms,
                 "ARTh": ARTh
             }])
